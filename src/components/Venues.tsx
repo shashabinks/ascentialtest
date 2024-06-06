@@ -1,26 +1,37 @@
-import React from 'react';
-import { SimpleGrid, Flex, Spinner, Heading, Text, Box, Badge, LinkBox, LinkOverlay } from '@chakra-ui/react';
-import { Link as BrowserLink } from 'react-router-dom';
-import { useSeatGeek } from '../utils/useSeatGeek';
-import Error from './Error';
-import Breadcrumbs from './Breadcrumbs';
+import React from "react";
+import {
+  SimpleGrid,
+  Flex,
+  Spinner,
+  Heading,
+  Text,
+  Box,
+  Badge,
+  LinkBox,
+  LinkOverlay,
+} from "@chakra-ui/react";
+import { Link as BrowserLink } from "react-router-dom";
+import { useSeatGeek } from "../utils/useSeatGeek";
+import Error from "./Error";
+import Breadcrumbs from "./Breadcrumbs";
+import FavoriteButton from "./FavoriteButton";
+import { useFavoritesContext } from "../context/FavoritesContext";
 
-export interface VenueProps {
+interface VenueProps {
   id: number;
   has_upcoming_events: boolean;
   num_upcoming_events: number;
   name_v2: string;
   display_location: string;
-}
-
-interface VenuItemProps {
-  venue: VenueProps;
+  isFavorite: boolean;
 }
 
 const Venues: React.FC = () => {
-  const { data, error } = useSeatGeek('/venues', { 
-    sort: 'score.desc',
-    per_page: '24',
+  const { venueFavorites, updateVenueFavorites } = useFavoritesContext();
+
+  const { data, error } = useSeatGeek("/venues", {
+    sort: "score.desc",
+    per_page: "24",
   });
 
   if (error) return <Error />;
@@ -30,44 +41,79 @@ const Venues: React.FC = () => {
       <Flex justifyContent="center" alignItems="center" minHeight="50vh">
         <Spinner size="lg" />
       </Flex>
-    )
+    );
   }
 
   return (
     <>
-      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Venues' }]} />
+      <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Venues" }]} />
       <SimpleGrid spacing="6" m="6" minChildWidth="350px">
         {data.venues?.map((venue: VenueProps) => (
-          <VenueItem key={venue.id.toString()} venue={venue} />
+          <VenueItem
+            key={venue.id.toString()}
+            venue={venue}
+            venueFavorites={venueFavorites}
+            updateVenueFavorites={updateVenueFavorites}
+          />
         ))}
       </SimpleGrid>
     </>
   );
 };
 
-const VenueItem: React.FC<VenuItemProps> = ({ venue }) => (
-  <LinkBox>
-    <Box        
-      p={[4, 6]}
-      bg="gray.50"
-      borderColor="gray.200"
-      borderWidth="1px"
-      justifyContent="center" 
-      alignContent="center"
-      rounded="lg"
-      _hover={{ bg: 'gray.100' }}
-    >
-      <Badge colorScheme={venue.has_upcoming_events ? 'green' : 'red'} mb="2">
-        {`${venue.has_upcoming_events ? venue.num_upcoming_events : 'No'} Upcoming Events`}
-      </Badge>
-      <Heading size='sm' noOfLines={1}>
-        <LinkOverlay as={BrowserLink} to={`/venues/${venue.id}`}>
-          {venue.name_v2}
-        </LinkOverlay>
-      </Heading>
-      <Text fontSize="sm" color="gray.500">{venue.display_location}</Text>
-    </Box>
-  </LinkBox>
-);
+interface VenueItemProps {
+  venue: VenueProps;
+  venueFavorites: VenueProps[];
+  updateVenueFavorites: (newVenueFavorites: VenueProps[]) => void;
+}
+
+const VenueItem: React.FC<VenueItemProps> = ({
+  venue,
+  venueFavorites,
+  updateVenueFavorites,
+}) => {
+  const isFavorite = venueFavorites.some((fav) => fav.id === venue.id);
+
+  const toggleFavorite = () => {
+    const newFavorites = isFavorite
+      ? venueFavorites.filter((fav) => fav.id !== venue.id)
+      : [...venueFavorites, venue];
+    updateVenueFavorites(newFavorites);
+  };
+
+  return (
+    <LinkBox>
+      <Box
+        p={[4, 6]}
+        bg="gray.50"
+        borderColor="gray.200"
+        borderWidth="1px"
+        justifyContent="center"
+        alignContent="center"
+        rounded="lg"
+        _hover={{ bg: "gray.100" }}
+      >
+        <Badge colorScheme={venue.has_upcoming_events ? "green" : "red"} mb="2">
+          {`${
+            venue.has_upcoming_events ? venue.num_upcoming_events : "No"
+          } Upcoming Events`}
+        </Badge>
+        <Flex justifyContent="space-between" alignItems="center">
+          <Heading size="sm" noOfLines={1}>
+            <LinkOverlay as={BrowserLink} to={`/venues/${venue.id}`}>
+              {venue.name_v2}
+            </LinkOverlay>
+          </Heading>
+          <Text fontSize="sm" color="gray.500">
+            {venue.display_location}
+          </Text>
+          <Flex justifyContent="flex-end" alignItems="center">
+            <FavoriteButton isFavorite={isFavorite} onClick={toggleFavorite} />
+          </Flex>
+        </Flex>
+      </Box>
+    </LinkBox>
+  );
+};
 
 export default Venues;
