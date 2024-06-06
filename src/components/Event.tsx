@@ -1,5 +1,5 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React from "react";
+import { useParams } from "react-router-dom";
 import {
   Flex,
   Heading,
@@ -12,12 +12,13 @@ import {
   Spinner,
   Button,
   Stack,
-} from '@chakra-ui/react';
-import Breadcrumbs from './Breadcrumbs';
-import Error from './Error';
-import { useSeatGeek } from '../utils/useSeatGeek';
-import { formatDateTime } from '../utils/formatDateTime';
-import { type Venue } from './Events';
+  Tooltip,
+} from "@chakra-ui/react";
+import Breadcrumbs from "./Breadcrumbs";
+import Error from "./Error";
+import { useSeatGeek } from "../utils/useSeatGeek";
+import { formatDateTime } from "../utils/formatDateTime";
+import { type Venue } from "./Events";
 
 interface EventInfoProps {
   event: {
@@ -25,7 +26,7 @@ interface EventInfoProps {
     datetime_utc: Date;
     venue: Venue;
     url: string;
-  }
+  };
 }
 
 const Event: React.FC = () => {
@@ -39,19 +40,19 @@ const Event: React.FC = () => {
       <Flex justifyContent="center" alignItems="center" minHeight="50vh">
         <Spinner size="lg" />
       </Flex>
-    )
+    );
   }
 
   return (
     <>
-      <Breadcrumbs 
+      <Breadcrumbs
         items={[
-          { label: 'Home', to: '/' },
-          { label: 'Events', to: '/events' },
+          { label: "Home", to: "/" },
+          { label: "Events", to: "/events" },
           { label: event.short_title },
-        ]} 
+        ]}
       />
-      <Flex bgColor='gray.200' p={[4, 6]}>
+      <Flex bgColor="gray.200" p={[4, 6]}>
         <Heading>{event.short_title}</Heading>
       </Flex>
       <EventInfo event={event} />
@@ -59,32 +60,36 @@ const Event: React.FC = () => {
   );
 };
 
-const EventInfo: React.FC<EventInfoProps> = ({ event }) => (
-  <Stack spacing="6" m="6">
-    <SimpleGrid 
-      columns={[1, 1, 2]} 
-      borderWidth="1px" 
-      borderRadius="md"
-      p="4" 
-    >
-      <Stat>
-        <StatLabel display="flex">
-          <Box as="span">Venue</Box>
-        </StatLabel>
-        <StatNumber fontSize="xl">{event.venue.name_v2}</StatNumber>
-        <StatHelpText>{event.venue.display_location}</StatHelpText>
-      </Stat>
-      <Stat>
-        <StatLabel display="flex">
-          <Box as="span">Date</Box>
-        </StatLabel>
-        <StatNumber fontSize="xl">{formatDateTime(event.datetime_utc)}</StatNumber>
-      </Stat>
-    </SimpleGrid>
-    <Flex>
-      <Button as={'a'} href={event.url} minWidth="0">Buy Tickets</Button>
-    </Flex>
-  </Stack>
-);
+const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return (
+    <Stack spacing="6" m="6">
+      <SimpleGrid columns={[1, 1, 2]} borderWidth="1px" borderRadius="md" p="4">
+        <Stat>
+          <StatLabel display="flex">
+            <Box as="span">Venue</Box>
+          </StatLabel>
+          <StatNumber fontSize="xl">{event.venue.name_v2}</StatNumber>
+          <StatHelpText>{event.venue.display_location}</StatHelpText>
+        </Stat>
+        <Stat>
+          <StatLabel display="flex">
+            <Box as="span">Date</Box>
+          </StatLabel>
+          <Tooltip label={formatDateTime(event.datetime_utc, userTimezone)}>
+            <StatNumber fontSize="xl">
+              {formatDateTime(event.datetime_utc, event.venue.timezone)}
+            </StatNumber>
+          </Tooltip>
+        </Stat>
+      </SimpleGrid>
+      <Flex>
+        <Button as={"a"} href={event.url} minWidth="0">
+          Buy Tickets
+        </Button>
+      </Flex>
+    </Stack>
+  );
+};
 
 export default Event;
