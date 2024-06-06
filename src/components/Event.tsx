@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   Flex,
@@ -19,6 +19,8 @@ import Error from "./Error";
 import { useSeatGeek } from "../utils/useSeatGeek";
 import { formatDateTime } from "../utils/formatDateTime";
 import { type Venue } from "./Events";
+import FavoriteButton from "./FavoriteButton";
+import { useFavoritesContext } from "../context/FavoritesContext";
 
 interface EventInfoProps {
   event: {
@@ -26,12 +28,45 @@ interface EventInfoProps {
     datetime_utc: Date;
     venue: Venue;
     url: string;
+    id: string;
+    isFavorite: boolean;
+    toggleFavorite: () => void;
   };
 }
 
 const Event: React.FC = () => {
   const { eventId } = useParams();
   const { data: event, error } = useSeatGeek(`events/${eventId}`);
+
+  // add in context hook
+  const { eventFavorites, updateEventFavorites } = useFavoritesContext();
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!event) return;
+    const isFav = eventFavorites.some(
+      (favEvent: any) => favEvent.id === event.id
+    );
+    setIsFavorite(isFav);
+  }, [event, eventFavorites]);
+
+  // update the status of an event
+  const toggleFavorite = () => {
+    const eventIndex = eventFavorites.findIndex(
+      (favEvent: any) => favEvent.id === event.id
+    );
+
+    if (eventIndex !== -1) {
+      const updatedFavorites = [...eventFavorites];
+      updatedFavorites.splice(eventIndex, 1);
+      updateEventFavorites(updatedFavorites);
+      setIsFavorite(false);
+    } else {
+      const updatedFavorites = [...eventFavorites, event];
+      updateEventFavorites(updatedFavorites);
+      setIsFavorite(true);
+    }
+  };
 
   if (error) return <Error />;
 
@@ -55,7 +90,13 @@ const Event: React.FC = () => {
       <Flex bgColor="gray.200" p={[4, 6]}>
         <Heading>{event.short_title}</Heading>
       </Flex>
-      <EventInfo event={event} />
+      <EventInfo
+        event={{
+          ...event,
+          isFavorite,
+          toggleFavorite,
+        }}
+      />
     </>
   );
 };
@@ -83,10 +124,14 @@ const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           </Tooltip>
         </Stat>
       </SimpleGrid>
-      <Flex>
+      <Flex justifyContent="space-between" alignItems="center">
         <Button as={"a"} href={event.url} minWidth="0">
           Buy Tickets
         </Button>
+        <FavoriteButton
+          isFavorite={event.isFavorite}
+          onClick={event.toggleFavorite}
+        />
       </Flex>
     </Stack>
   );

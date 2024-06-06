@@ -1,39 +1,43 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import {
-  Flex,
-  Heading,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  SimpleGrid,
-  Box,
-  Spinner,
-  AspectRatio,
-} from '@chakra-ui/react';
-import Breadcrumbs from './Breadcrumbs';
-import Error from './Error';
-import { useSeatGeek } from '../utils/useSeatGeek';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Flex, Heading, Spinner, Box, AspectRatio } from "@chakra-ui/react";
+import Breadcrumbs from "./Breadcrumbs";
+import Error from "./Error";
+import { useSeatGeek } from "../utils/useSeatGeek";
+import FavoriteButton from "./FavoriteButton";
+import { useFavoritesContext } from "../context/FavoritesContext";
 
-interface StatsProps {
-  venue: {
+interface VenueProps {
+  name: string;
+  location: {
     city: string;
     country: string;
     capacity: number;
-  }
-}
-
-interface MapProps {
-  location: {
     lat: number;
     lon: number;
-  }
+  };
 }
 
 const Venue: React.FC = () => {
   const { venueId } = useParams();
   const { data: venue, error } = useSeatGeek(`venues/${venueId}`);
+  const { venueFavorites, updateVenueFavorites } = useFavoritesContext();
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!venue) return;
+    setIsFavorite(venueFavorites.some((fav) => fav.id === venue.id));
+  }, [venue, venueId, venueFavorites]);
+
+  const toggleFavorite = () => {
+    if (!venue) return;
+
+    const newFavorites = isFavorite
+      ? venueFavorites.filter((fav) => fav.id !== venue.id)
+      : [...venueFavorites, venue];
+    updateVenueFavorites(newFavorites);
+    setIsFavorite(!isFavorite);
+  };
 
   if (error) return <Error />;
 
@@ -42,55 +46,51 @@ const Venue: React.FC = () => {
       <Flex justifyContent="center" alignItems="center" minHeight="50vh">
         <Spinner size="lg" />
       </Flex>
-    )
+    );
   }
 
   return (
     <>
       <Breadcrumbs
         items={[
-          { label: 'Home', to: '/' },
-          { label: 'Venues', to: '/venues' },
+          { label: "Home", to: "/" },
+          { label: "Venues", to: "/venues" },
           { label: venue.name },
-        ]} 
+        ]}
       />
       <Flex bgColor="gray.200" p={[4, 6]}>
         <Heading>{venue.name}</Heading>
       </Flex>
       <Stats venue={venue} />
       <Map location={venue.location} />
+      <Flex justifyContent="flex-end" p="6">
+        <FavoriteButton isFavorite={isFavorite} onClick={toggleFavorite} />
+      </Flex>
     </>
   );
 };
 
-const Stats: React.FC<StatsProps> = ({ venue }) => (
-  <SimpleGrid 
-    columns={[1, 1, 2]} 
-    borderWidth="1px" 
-    borderRadius="md" 
-    m="6" 
-    p="4" 
-  >
-    <Stat>
-      <StatLabel display="flex">
-        <Box as="span">Location</Box>
-      </StatLabel>
-      <StatNumber fontSize="xl">{venue.city}</StatNumber>
-      <StatHelpText>{venue.country}</StatHelpText>
-    </Stat>
-    {venue.capacity > 0 && (
-      <Stat>
-        <StatLabel display="flex">
-          <Box as="span">Capacity</Box>
-        </StatLabel>
-        <StatNumber fontSize="xl">{venue.capacity}</StatNumber>
-      </Stat>
+const Stats: React.FC<{ venue: VenueProps }> = ({ venue }) => (
+  <Box m="6" p="4">
+    <Flex flexDirection="column">
+      <Heading size="md">Location</Heading>
+      <Box>
+        {venue.location.city}, {venue.location.country}
+      </Box>
+    </Flex>
+    {venue.location.capacity > 0 && (
+      <Flex flexDirection="column">
+        <Heading size="md">Capacity</Heading>
+        <Box>{venue.location.capacity}</Box>
+      </Flex>
     )}
-  </SimpleGrid>
+  </Box>
 );
 
-const Map: React.FC<MapProps> = ({ location }) => (
-  <AspectRatio ratio={16 / 5}>
+const Map: React.FC<{ location: { lat: number; lon: number } }> = ({
+  location,
+}) => (
+  <AspectRatio ratio={16 / 5} m="6">
     <Box
       as="iframe"
       src={`https://maps.google.com/maps?q=${location.lat},${location.lon}&z=15&output=embed`}

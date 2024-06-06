@@ -11,12 +11,15 @@ import {
   Stack,
   Image,
   LinkBox,
-  LinkOverlay,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
+import FavoriteButton from "./FavoriteButton";
 import Breadcrumbs from "./Breadcrumbs";
 import Error from "./Error";
 import { useSeatGeek } from "../utils/useSeatGeek";
+
+import { EventProps } from "../types/interfaces";
+import { useFavoritesContext } from "../context/FavoritesContext";
 
 export interface Performers {
   image: string;
@@ -25,15 +28,7 @@ export interface Performers {
 export interface Venue {
   name_v2: string;
   display_location: string;
-  timezone: string; // Add timezone property
-}
-
-export interface EventProps {
-  id: string;
-  short_title: string;
-  datetime_utc: Date;
-  performers: Performers[];
-  venue: Venue;
+  timezone: string;
 }
 
 interface EventItemProps {
@@ -70,6 +65,18 @@ const Events: React.FC = () => {
 };
 
 const EventItem: React.FC<EventItemProps> = ({ event }) => {
+  const { eventFavorites, updateEventFavorites } = useFavoritesContext();
+
+  const isFavorite = eventFavorites.some((fav) => fav.id === event.id);
+
+  // update favorites
+  const toggleFavorite = () => {
+    const newFavorites = isFavorite
+      ? eventFavorites.filter((fav) => fav.id !== event.id)
+      : [...eventFavorites, event];
+    updateEventFavorites(newFavorites);
+  };
+
   return (
     <LinkBox
       as={Card}
@@ -82,18 +89,19 @@ const EventItem: React.FC<EventItemProps> = ({ event }) => {
       <Image src={event.performers[0].image} />
       <CardBody>
         <Stack spacing="2">
-          <Heading size="md">
-            <LinkOverlay as={Link} to={`/events/${event.id}`}>
-              {event.short_title}
-            </LinkOverlay>
-          </Heading>
-          <Box>
-            <Text fontSize="sm" color="gray.600">
-              {event.venue.name_v2}
-            </Text>
-            <Text fontSize="sm" color="gray.600">
-              {event.venue.display_location}
-            </Text>
+          <Box p="4" mb="4" display="flex" alignItems="center">
+            <Box flex="1">
+              <Heading as="h2" size="md">
+                <Link to={`/events/${event.id}`}>{event.short_title}</Link>
+              </Heading>
+              <Text fontSize="sm" color="gray.600">
+                {event.venue.name_v2}
+              </Text>
+              <Text fontSize="sm" color="gray.600">
+                {event.venue.display_location}
+              </Text>
+            </Box>
+            <FavoriteButton isFavorite={isFavorite} onClick={toggleFavorite} />
           </Box>
         </Stack>
       </CardBody>
